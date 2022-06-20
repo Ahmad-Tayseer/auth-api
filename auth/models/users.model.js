@@ -7,8 +7,8 @@ const jwt = require('jsonwebtoken');
 const SECRET = process.env.SECRET || 'anything';
 
 
-const users =  
-    sequelize.define('users', {
+const users =
+    sequelize.define('Customers', {
         username: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -25,18 +25,25 @@ const users =
             // get() {return jwt.sign({ username: this.username }), SECRET;}
         },
 
-        actions:{
+        role: {
+            type: DataTypes.ENUM('admin', 'writer', 'editor', 'user'),
+            defaultValue: 'user',
+          },
+
+        actions: {
             type: DataTypes.VIRTUAL,
             get() {
-                const acl ={
+                const acl = {
                     user: ['read'],
-                    writer: ['read','create'],
-                    editor: ['read','create','update'],
-                    admin: ['read','create','update','delete']
+                    writer: ['read', 'create'],
+                    editor: ['read', 'create', 'update'],
+                    admin: ['read', 'create', 'update', 'delete']
                 }
                 return acl[this.role];
             }
+        }
     });
+
 
 users.authenticateBasic = async function (username, password) {
     const user = await users.findOne({ where: { username: username } })
@@ -53,16 +60,18 @@ users.authenticateBasic = async function (username, password) {
 }
 
 users.authenticateBearer = async function (token) {
+    // console.log("333333333333333333333333333333333333",token);
     const parsedToken = jwt.verify(token, SECRET);
     // console.log('parsedToken >>>>>>>>>>>>>>>>>>', parsedToken);
     const user = await users.findOne({ where: { username: parsedToken.username } });
     if (user.username) {
+        // console.log("888888888888888888888888888888888888888888888");
         return user;
     } else {
         throw new Error("Invalid Token");
     }
 }
-    
 
-module.exports = {users: users};
+
+module.exports = { users: users };
 

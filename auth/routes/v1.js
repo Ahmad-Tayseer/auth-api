@@ -1,58 +1,55 @@
 'use strict';
-const modelFolder = require('../models');
+
 const express = require('express');
-const routers = express.Router();
-routers.param("model",(req,res,next)=>{
-    if (modelFolder[req.params.model]) {
-        req.model = modelFolder[req.params.model];
+const dataModules = require('../models/index.model');
+
+const router = express.Router();
+
+router.param('model', (req, res, next) => {
+    const modelName = req.params.model;
+    if (dataModules[modelName]) {
+        req.model = dataModules[modelName];
         next();
     } else {
-        next('invalid input');
+        next('Invalid Model');
     }
-}) 
-routers.post('/:model',async(req,res)=>{
-    let newModel = req.body;
-    let model = await req.model.createRecord(newModel);
-    res.status(201).json(model);
-})
+});
 
-routers.get('/:model',async(req,res)=>{
-    let allData = await req.model.readRecord();
-    res.status(200).send(allData);
+router.get('/v1/:model', handleGetAll);
+router.get('/v1/:model/:id', handleGetOne);
+router.post('/v1/:model', handleCreate);
+router.put('/v1/:model/:id', handleUpdate);
+router.delete('/v1/:model/:id', handleDelete);
 
-})
-routers.get('/:model/:id',async(req,res)=>{
-    const id = parseInt(req.params.id);
-    let oneData = await req.model.readRecord(id);
-    if(oneData){
-            res.status(200).send(oneData);
-    }else{
-        res.status(403).send(`There is no model with this id: ${id}`);
-    }
+async function handleGetAll(req, res) {
+    let allRecords = await req.model.get();
+    res.status(200).json(allRecords);
+}
 
-})
+async function handleGetOne(req, res) {
+    const id = req.params.id;
+    let theRecord = await req.model.get(id)
+    res.status(200).json(theRecord);
+}
 
-routers.put('/:model/:id',async(req,res)=>{
-    const id = parseInt(req.params.id);
-    let updateModel = req.body; 
-    let updatedModel = await req.model.updateRecord(updateModel,id);
-    if(updatedModel[0]!=0){
-        res.status(201).json(updatedModel[1]);
-    }else{
-        res.status(403).send(`There is no model with this id: ${id}`);
-    }
-  
-})
-routers.delete('/:model/:id',async(req,res)=>{
-    let id = parseInt(req.params.id);
-    let deletedModel = await req.model.removeRecord(id);
-    if(deletedModel){
-        res.send("Deleted Successfully");
-        res.status(204);
-    }
-    else{
-        res.status(403).send(`There is no model with this id: ${id}`);
-    }
-    
-})
-module.exports = routers;
+async function handleCreate(req, res) {
+    let obj = req.body;
+    let newRecord = await req.model.create(obj);
+    res.status(201).json(newRecord);
+}
+
+async function handleUpdate(req, res) {
+    const id = req.params.id;
+    const obj = req.body;
+    let updatedRecord = await req.model.update(id, obj)
+    res.status(200).json(updatedRecord);
+}
+
+async function handleDelete(req, res) {
+    let id = req.params.id;
+    let deletedRecord = await req.model.delete(id);
+    res.status(200).json(deletedRecord);
+}
+
+
+module.exports = router;

@@ -10,10 +10,12 @@ const signinRouters = require("./routes/signin");
 const signupRouters = require("./routes/signup");
 const secretStuffRouters = require("./routes/secretstuff");
 const getUsersRouters = require("./routes/getusers");
-const v1Router=require("./routes/v1");
-const v2Router=require("./routes/v2");
+const v1Router = require("./routes/v1");
+const v2Router = require("./routes/v2");
 
 app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
     res.status(200).send('Hello World!');
