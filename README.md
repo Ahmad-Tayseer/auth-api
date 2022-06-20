@@ -6,4 +6,4 @@
 
 [GitHub Actions Link](https://github.com/Ahmad-Tayseer/auth-api/actions)
 
-![](./Screenshot_19.png)
+![](./Screenshot_14.png)
