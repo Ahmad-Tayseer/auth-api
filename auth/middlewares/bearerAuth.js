@@ -1,19 +1,23 @@
 'use strict';
-const {users} = require("../models/users.model");
-async function bearer(req, res, next) {
-    if (req.headers.authorization) {
-        // Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNoaWhhYiIsImlhdCI6MTY1NTA0ODcxMX0.ZEiWN5JiWGvGFr4s3Q6NRLGMHahoTOV3OkiXLfJTvhk
-        const bearerToken = req.headers.authorization.split(" ")[1];
-        users.authenticateBearer(bearerToken)
-            .then((userData) => {
-                req.user = userData;
-                next();
-            })
-            .catch(() => {
-                res.status(403);
-                res.send("Invalid Token");
-            })
-    }
-}
+const { users } = require("../models/users.model");
 
-module.exports = bearer;
+module.exports = async (req, res, next) => {
+
+    try {
+  
+      if (!req.headers.authorization) { next('Invalid Login') }
+  
+      const token = req.headers.authorization.split(' ').pop();
+      // console.log("22222222222222222222222222222222222", token);
+      const validUser = await users.authenticateBearer(token);
+      console.log("4444444444444444444444444444444444", validUser);
+      req.user = validUser;
+      req.token = validUser.token;
+      next();
+  
+    } catch (e) {
+      console.error(e);
+      res.status(403).send('Invalid Login');
+    }
+  }
+  

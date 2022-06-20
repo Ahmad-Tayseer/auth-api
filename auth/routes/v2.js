@@ -1,54 +1,57 @@
 'use strict';
+
 const express = require('express');
-const routers = express.Router();
-const bearer=require("../middleware/bearerAuth");
-const acl=require("../middleware/acl");
-const Collection=require("../models/data-collection");
-const {users}=require("../models/index");
+const dataModules = require('../models/index.model');
+const bearerAuth = require('../middlewares/bearerAuth');
+const acl = require('../middlewares/acl');
 
-const usersCol=new Collection(users);
- 
+const router = express.Router();
 
-routers.get('/v2', bearer,acl('read'),async (req, res) => {
-    let allData = await usersCol.readRecord();
-    res.status(200).send(allData);
-});
-routers.get('/v2/:id',bearer,acl('read'),async(req,res)=>{
-    const id = parseInt(req.params.id);
-    let oneData = await usersCol.readRecord(id);
-    if(oneData){
-            res.status(200).send(oneData);
-    }else{
-        res.status(403).send(`There is no model with this id: ${id}`);
+router.param('model', (req, res, next) => {
+    const modelName = req.params.model;
+    if (dataModules[modelName]) {
+        req.model = dataModules[modelName];
+        next();
+    } else {
+        next('Invalid Model');
     }
 });
-routers.post('/v2', bearer, acl('create'),async (req, res) => {
-    let newModel = req.body;
-    let model = await usersCol.createRecord(newModel);
-    res.status(201).json(model);
-});
-routers.put('/v2/:id', bearer, acl('update'),async (req, res) => {
-    const id = parseInt(req.params.id);
-    let updateModel = req.body; 
-    let updatedModel = await usersCol.updateRecord(updateModel,id);
-    if(updatedModel[0]!=0){
-        res.status(201).json(updatedModel[1]);
-    }else{
-        res.status(403).send(`There is no model with this id: ${id}`);
-    }
-});
-routers.patch('/v2/:id', bearer, acl('update'), (req, res) => {
-    res.send('Bearer token and the update capability');
-});
-routers.delete('/v2/:id', bearer, acl('delete'),async (req, res) => {
-    let id = parseInt(req.params.id);
-    let deletedModel = await usersCol.removeRecord(id);
-    if(deletedModel){
-        res.send("Deleted Successfully"); 
-        res.status(204);
-    }
-    else{
-        res.status(403).send(`There is no model with this id: ${id}`);
-    }});
 
-module.exports = routers;
+router.get('/v2/:model', bearerAuth, acl('read'), handleGetAll);
+router.get('/v2/:model/:id', bearerAuth, acl('read'), handleGetOne);
+router.post('/v2/:model', bearerAuth, acl('create'), handleCreate);
+router.put('/v2/:model/:id', bearerAuth, acl('update'), handleUpdate);
+router.delete('/v2/:model/:id', bearerAuth, acl('delete'), handleDelete);
+
+async function handleGetAll(req, res) {
+    let allRecords = await req.model.get();
+    res.status(200).json(allRecords);
+}
+
+async function handleGetOne(req, res) {
+    const id = req.params.id;
+    let theRecord = await req.model.get(id)
+    res.status(200).json(theRecord);
+}
+
+async function handleCreate(req, res) {
+    let obj = req.body;
+    let newRecord = await req.model.create(obj);
+    res.status(201).json(newRecord);
+}
+
+async function handleUpdate(req, res) {
+    const id = req.params.id;
+    const obj = req.body;
+    let updatedRecord = await req.model.update(id, obj)
+    res.status(200).json(updatedRecord);
+}
+
+async function handleDelete(req, res) {
+    let id = req.params.id;
+    let deletedRecord = await req.model.delete(id);
+    res.status(200).json(deletedRecord);
+}
+
+
+module.exports = router;
